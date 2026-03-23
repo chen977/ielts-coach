@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { UpgradePhrase, GrammarPattern } from '@/lib/speaking/types'
+import { hasSpeechSynthesis, safeSpeechSynthesis } from '@/lib/browser'
 
 interface PersonalizedAnswerProps {
   modelAnswer: string
@@ -28,19 +29,35 @@ export default function PersonalizedAnswer({
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [ttsRate, setTtsRate] = useState<TTSRate>(1.0)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [ttsSupported] = useState(() => hasSpeechSynthesis())
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   // Load voices (async on some browsers)
   useEffect(() => {
+    const synth = safeSpeechSynthesis()
+    if (!synth) return
+
     function loadVoices() {
-      const available = speechSynthesis.getVoices()
-      if (available.length > 0) setVoices(available)
+      try {
+        const available = synth!.getVoices()
+        if (available.length > 0) setVoices(available)
+      } catch {
+        // getVoices() can throw on some browsers
+      }
     }
     loadVoices()
-    speechSynthesis.addEventListener('voiceschanged', loadVoices)
+    try {
+      synth.addEventListener('voiceschanged', loadVoices)
+    } catch {
+      // not supported on all platforms
+    }
     return () => {
-      speechSynthesis.removeEventListener('voiceschanged', loadVoices)
-      speechSynthesis.cancel()
+      try {
+        synth.removeEventListener('voiceschanged', loadVoices)
+        synth.cancel()
+      } catch {
+        // cleanup errors are non-critical
+      }
     }
   }, [])
 
@@ -55,21 +72,28 @@ export default function PersonalizedAnswer({
   }, [voices])
 
   function handleTTS() {
+    const synth = safeSpeechSynthesis()
+    if (!synth) return
+
     if (isSpeaking) {
-      speechSynthesis.cancel()
+      try { synth.cancel() } catch { /* ignore */ }
       setIsSpeaking(false)
       return
     }
 
-    const utterance = new SpeechSynthesisUtterance(modelAnswer)
-    const voice = getPreferredVoice()
-    if (voice) utterance.voice = voice
-    utterance.rate = ttsRate
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
-    utteranceRef.current = utterance
-    speechSynthesis.speak(utterance)
-    setIsSpeaking(true)
+    try {
+      const utterance = new SpeechSynthesisUtterance(modelAnswer)
+      const voice = getPreferredVoice()
+      if (voice) utterance.voice = voice
+      utterance.rate = ttsRate
+      utterance.onend = () => setIsSpeaking(false)
+      utterance.onerror = () => setIsSpeaking(false)
+      utteranceRef.current = utterance
+      synth.speak(utterance)
+      setIsSpeaking(true)
+    } catch {
+      setIsSpeaking(false)
+    }
   }
 
   // Highlight phrases in the model answer
@@ -81,48 +105,50 @@ export default function PersonalizedAnswer({
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Your Band 7 Answer</h3>
-          <div className="flex items-center gap-2">
-            {/* Rate selector */}
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-              {([0.8, 1.0, 1.2] as TTSRate[]).map(rate => (
-                <button
-                  key={rate}
-                  onClick={() => setTtsRate(rate)}
-                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
-                    ttsRate === rate ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-                  }`}
-                >
-                  {rate}x
-                </button>
-              ))}
+          {ttsSupported && (
+            <div className="flex items-center gap-2">
+              {/* Rate selector */}
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                {([0.8, 1.0, 1.2] as TTSRate[]).map(rate => (
+                  <button
+                    key={rate}
+                    onClick={() => setTtsRate(rate)}
+                    className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                      ttsRate === rate ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                    }`}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+              {/* Play/Stop button */}
+              <button
+                onClick={handleTTS}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isSpeaking
+                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'bg-sky-50 text-sky-600 hover:bg-sky-100'
+                }`}
+              >
+                {isSpeaking ? (
+                  <>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <rect x="6" y="4" width="4" height="16" rx="1" />
+                      <rect x="14" y="4" width="4" height="16" rx="1" />
+                    </svg>
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                    Listen
+                  </>
+                )}
+              </button>
             </div>
-            {/* Play/Stop button */}
-            <button
-              onClick={handleTTS}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                isSpeaking
-                  ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                  : 'bg-sky-50 text-sky-600 hover:bg-sky-100'
-              }`}
-            >
-              {isSpeaking ? (
-                <>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="6" y="4" width="4" height="16" rx="1" />
-                    <rect x="14" y="4" width="4" height="16" rx="1" />
-                  </svg>
-                  Stop
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  Listen
-                </>
-              )}
-            </button>
-          </div>
+          )}
         </div>
 
         {/* Highlighted answer text */}

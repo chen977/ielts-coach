@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ScriptSegment } from '@/lib/listening/types'
+import { hasSpeechSynthesis, safeSpeechSynthesis } from '@/lib/browser'
 
 interface TranscriptViewProps {
   script: ScriptSegment[]
@@ -78,52 +79,57 @@ export default function TranscriptView({
 }: TranscriptViewProps) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [activePos, setActivePos] = useState<ActivePosition | null>(null)
+  const [ttsSupported] = useState(() => hasSpeechSynthesis())
   const cancelRef = useRef(false)
   // Generation counter: each playFrom call gets a unique ID so stale loops can't resume
   const playGenRef = useRef(0)
 
   // Load available TTS voices
   useEffect(() => {
+    const synth = safeSpeechSynthesis()
+    if (!synth) return
+
     function loadVoices() {
-      const available = speechSynthesis.getVoices()
-      if (available.length > 0) setVoices(available)
+      try {
+        const available = synth!.getVoices()
+        if (available.length > 0) setVoices(available)
+      } catch {
+        // getVoices() can throw on some browsers
+      }
     }
     loadVoices()
-    speechSynthesis.addEventListener('voiceschanged', loadVoices)
-    return () => speechSynthesis.removeEventListener('voiceschanged', loadVoices)
+    try {
+      synth.addEventListener('voiceschanged', loadVoices)
+    } catch {
+      // not supported on all platforms
+    }
+    return () => {
+      try { synth.removeEventListener('voiceschanged', loadVoices) } catch { /* ignore */ }
+    }
   }, [])
 
   // Cancel speech on unmount
   useEffect(() => {
     return () => {
       cancelRef.current = true
-      speechSynthesis.cancel()
+      try { safeSpeechSynthesis()?.cancel() } catch { /* ignore */ }
     }
   }, [])
 
   const stopPlayback = useCallback(() => {
     playGenRef.current++        // invalidate any running generation
     cancelRef.current = true
-    speechSynthesis.cancel()
+    try { safeSpeechSynthesis()?.cancel() } catch { /* ignore */ }
     setActivePos(null)
   }, [])
 
-  // Play from a specific segment+sentence, continuing to end of script.
-  //
-  // Uses a generation counter so that when the user clicks a new sentence (or
-  // Stop), any previous async loop immediately bails out — even if it was
-  // sleeping in an inter-sentence pause.
-  //
-  // Also works around two Chrome TTS bugs:
-  // 1. Chrome silently kills speechSynthesis after ~15 s of continuous use.
-  //    Fix: pause()/resume() heartbeat every 10 s keeps it alive.
-  // 2. After a cancel(), the next utterance's onend sometimes never fires,
-  //    hanging the promise chain. Fix: a safety timeout based on text length
-  //    guarantees forward progress even if the event is swallowed.
   const playFrom = useCallback(async (startSegIndex: number, startSentIndex: number) => {
+    const synth = safeSpeechSynthesis()
+    if (!synth) return
+
     // Cancel any in-progress playback (both ours and AudioPlayer's)
     cancelRef.current = true
-    speechSynthesis.cancel()
+    try { synth.cancel() } catch { /* ignore */ }
     onPlaybackStart?.()   // tells ListeningSession to kill AudioPlayer's loop
 
     // Wait long enough for Chrome to fully tear down the previous queue
@@ -140,9 +146,13 @@ export default function TranscriptView({
 
     // Chrome keepalive: periodically nudge speechSynthesis so it doesn't auto-stop
     const keepAlive = setInterval(() => {
-      if (speechSynthesis.speaking) {
-        speechSynthesis.pause()
-        speechSynthesis.resume()
+      try {
+        if (synth.speaking) {
+          synth.pause()
+          synth.resume()
+        }
+      } catch {
+        // pause/resume can throw on some platforms
       }
     }, 10_000)
 
@@ -165,21 +175,25 @@ export default function TranscriptView({
             let settled = false
             const done = () => { if (!settled) { settled = true; resolve() } }
 
-            const utterance = new SpeechSynthesisUtterance(text)
-            if (baseVoice) utterance.voice = baseVoice
-            utterance.pitch = cfg?.pitch ?? 1.0
-            utterance.rate = cfg?.rate ?? 0.9
-            utterance.onend = done
-            utterance.onerror = e => {
-              if (e.error !== 'canceled' && e.error !== 'interrupted') console.error('TTS error:', e.error)
+            try {
+              const utterance = new SpeechSynthesisUtterance(text)
+              if (baseVoice) utterance.voice = baseVoice
+              utterance.pitch = cfg?.pitch ?? 1.0
+              utterance.rate = cfg?.rate ?? 0.9
+              utterance.onend = done
+              utterance.onerror = e => {
+                if (e.error !== 'canceled' && e.error !== 'interrupted') console.error('TTS error:', e.error)
+                done()
+              }
+
+              // Safety timeout: if onend/onerror never fire, resolve anyway.
+              const estimatedMs = Math.max((text.length * 80) / (cfg?.rate ?? 0.9), 3000) + 2000
+              setTimeout(done, estimatedMs)
+
+              synth.speak(utterance)
+            } catch {
               done()
             }
-
-            // Safety timeout: if onend/onerror never fire, resolve anyway.
-            const estimatedMs = Math.max((text.length * 80) / (cfg?.rate ?? 0.9), 3000) + 2000
-            setTimeout(done, estimatedMs)
-
-            speechSynthesis.speak(utterance)
           })
 
           // Pause between sentences / speakers
@@ -207,19 +221,22 @@ export default function TranscriptView({
   const visibleScript = isProgressiveReveal ? script.slice(0, revealedCount) : script
   const isPlaying = activePos !== null
 
+  // Disable click-to-speak if TTS is not supported
+  const effectiveClickToSpeak = clickToSpeak && ttsSupported
+
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between">
         <p className="text-sm font-medium text-gray-900">Transcript</p>
 
         <div className="flex items-center gap-3">
-          {clickToSpeak && !isPlaying && (
+          {effectiveClickToSpeak && !isPlaying && (
             <span className="flex items-center gap-1 text-xs text-gray-400">
               <SpeakerIcon />
               Click any sentence to play from there
             </span>
           )}
-          {clickToSpeak && isPlaying && (
+          {effectiveClickToSpeak && isPlaying && (
             <button
               onClick={stopPlayback}
               className="flex items-center gap-1.5 text-xs text-sky-600 hover:text-sky-800 transition-colors"
@@ -227,6 +244,9 @@ export default function TranscriptView({
               <StopIcon />
               Stop
             </button>
+          )}
+          {clickToSpeak && !ttsSupported && (
+            <span className="text-xs text-amber-500">Audio not available in this browser</span>
           )}
           {isProgressiveReveal && revealedCount! < script.length && (
             <span className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -263,7 +283,7 @@ export default function TranscriptView({
                   {seg.speaker}
                 </span>
 
-                {clickToSpeak ? (
+                {effectiveClickToSpeak ? (
                   <div className="flex-1 space-y-0.5">
                     {splitIntoSentences(seg.text).map((sentence, j) => {
                       const isActive = activePos?.segIndex === si && activePos?.sentIndex === j

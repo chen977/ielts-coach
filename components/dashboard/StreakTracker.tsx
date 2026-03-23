@@ -1,12 +1,13 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+
 interface StreakTrackerProps {
   streakDays: number
   practiceDays: string[]
 }
 
-export default function StreakTracker({ streakDays, practiceDays }: StreakTrackerProps) {
-  // Build a 4-week calendar (28 days)
+function buildCalendar(practiceDays: string[]) {
   const today = new Date()
   const days: { date: string; practiced: boolean; isToday: boolean }[] = []
 
@@ -20,6 +21,16 @@ export default function StreakTracker({ streakDays, practiceDays }: StreakTracke
       isToday: i === 0,
     })
   }
+  return days
+}
+
+export default function StreakTracker({ streakDays, practiceDays }: StreakTrackerProps) {
+  // Defer Date() to client-side to avoid SSR hydration mismatch
+  const [days, setDays] = useState<{ date: string; practiced: boolean; isToday: boolean }[]>([])
+
+  useEffect(() => {
+    setDays(buildCalendar(practiceDays))
+  }, [practiceDays])
 
   // Split into weeks of 7
   const weeks: typeof days[] = []

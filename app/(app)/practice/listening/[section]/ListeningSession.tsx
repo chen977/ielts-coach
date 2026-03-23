@@ -10,6 +10,7 @@ import type {
   GeneratedListeningContent,
 } from '@/lib/listening/types'
 import { gradeSession } from '@/lib/listening/scoring'
+import { hasSpeechSynthesis, safeSpeechSynthesis } from '@/lib/browser'
 import AudioPlayer from '@/components/listening/AudioPlayer'
 import QuestionPanel from '@/components/listening/QuestionPanel'
 import ReadingTimer from '@/components/listening/ReadingTimer'
@@ -204,16 +205,22 @@ export default function ListeningSession({ section, level }: ListeningSessionPro
   // Transcript click-to-speak: kill AudioPlayer's loop so they don't fight
   const handleTranscriptPlaybackStart = useCallback(() => {
     audioPlayerCancelRef.current = true
-    speechSynthesis.cancel()
+    try { safeSpeechSynthesis()?.cancel() } catch { /* ignore */ }
   }, [])
 
   // Level 3: user clicks "Start Test" — prime TTS to satisfy autoplay policy, then start timer
   const handleStartTest = useCallback(() => {
-    // Speak a silent utterance immediately on click to unlock speech synthesis
-    const prime = new SpeechSynthesisUtterance('\u00A0')
-    prime.volume = 0
-    prime.rate = 10
-    speechSynthesis.speak(prime)
+    // Speak a silent utterance immediately on click to unlock speech synthesis (iOS requirement)
+    if (hasSpeechSynthesis()) {
+      try {
+        const prime = new SpeechSynthesisUtterance('\u00A0')
+        prime.volume = 0
+        prime.rate = 10
+        safeSpeechSynthesis()?.speak(prime)
+      } catch {
+        // TTS priming failed — not critical, audio may still work
+      }
+    }
     setTestStarted(true)
   }, [])
 

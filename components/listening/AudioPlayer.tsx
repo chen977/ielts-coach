@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { ScriptSegment, LearningLevel, VoiceAssignment } from '@/lib/listening/types'
+import { hasSpeechSynthesis, safeSpeechSynthesis } from '@/lib/browser'
 
 interface AudioPlayerProps {
   script: ScriptSegment[]
@@ -59,6 +60,7 @@ export default function AudioPlayer({
   const [currentSegment, setCurrentSegment] = useState(0)
   const [hasPlayed, setHasPlayed] = useState(false)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [ttsSupported] = useState(() => hasSpeechSynthesis())
   // For level 2: track which round we're on (1 or 2)
   const [playRound, setPlayRound] = useState(1)
   const maxRounds = level === 2 ? 2 : 1
@@ -71,15 +73,30 @@ export default function AudioPlayer({
 
   // Load voices
   useEffect(() => {
+    const synth = safeSpeechSynthesis()
+    if (!synth) return
+
     function loadVoices() {
-      const available = speechSynthesis.getVoices()
-      if (available.length > 0) setVoices(available)
+      try {
+        const available = synth!.getVoices()
+        if (available.length > 0) setVoices(available)
+      } catch {
+        // getVoices() can throw on some browsers
+      }
     }
     loadVoices()
-    speechSynthesis.addEventListener('voiceschanged', loadVoices)
+    try {
+      synth.addEventListener('voiceschanged', loadVoices)
+    } catch {
+      // addEventListener may not be supported on all platforms
+    }
     return () => {
-      speechSynthesis.removeEventListener('voiceschanged', loadVoices)
-      speechSynthesis.cancel()
+      try {
+        synth.removeEventListener('voiceschanged', loadVoices)
+        synth.cancel()
+      } catch {
+        // cleanup errors are non-critical
+      }
     }
   }, [])
 
@@ -104,7 +121,9 @@ export default function AudioPlayer({
   }, [externalCancelRef])
 
   const speakSegments = useCallback(async (startIndex: number) => {
-    if (isCancelled()) return
+    const synth = safeSpeechSynthesis()
+    if (!synth || isCancelled()) return
+
     isPlayingRef.current = true
     setPlaybackState('playing')
     // Reset external cancel so AudioPlayer can play normally
@@ -116,9 +135,13 @@ export default function AudioPlayer({
 
     // Chrome keepalive: periodically nudge speechSynthesis so it doesn't auto-stop
     const keepAlive = setInterval(() => {
-      if (speechSynthesis.speaking) {
-        speechSynthesis.pause()
-        speechSynthesis.resume()
+      try {
+        if (synth.speaking) {
+          synth.pause()
+          synth.resume()
+        }
+      } catch {
+        // pause/resume can throw on some platforms
       }
     }, 10_000)
 
@@ -147,21 +170,26 @@ export default function AudioPlayer({
             let settled = false
             const done = () => { if (!settled) { settled = true; resolve() } }
 
-            const utterance = new SpeechSynthesisUtterance(chunk)
-            if (baseVoice) utterance.voice = baseVoice
-            utterance.pitch = assignment?.pitch ?? 1.0
-            utterance.rate = assignment?.rate ?? 0.9
-            utterance.onend = done
-            utterance.onerror = (e) => {
-              if (e.error !== 'canceled' && e.error !== 'interrupted') console.error('TTS error:', e.error)
+            try {
+              const utterance = new SpeechSynthesisUtterance(chunk)
+              if (baseVoice) utterance.voice = baseVoice
+              utterance.pitch = assignment?.pitch ?? 1.0
+              utterance.rate = assignment?.rate ?? 0.9
+              utterance.onend = done
+              utterance.onerror = (e) => {
+                if (e.error !== 'canceled' && e.error !== 'interrupted') console.error('TTS error:', e.error)
+                done()
+              }
+
+              // Safety timeout: if onend/onerror never fire, resolve anyway
+              const estimatedMs = Math.max((chunk.length * 80) / (assignment?.rate ?? 0.9), 3000) + 2000
+              setTimeout(done, estimatedMs)
+
+              synth.speak(utterance)
+            } catch {
+              // SpeechSynthesisUtterance or speak() failed
               done()
             }
-
-            // Safety timeout: if onend/onerror never fire, resolve anyway
-            const estimatedMs = Math.max((chunk.length * 80) / (assignment?.rate ?? 0.9), 3000) + 2000
-            setTimeout(done, estimatedMs)
-
-            speechSynthesis.speak(utterance)
           })
         }
 
@@ -199,23 +227,37 @@ export default function AudioPlayer({
 
   // Auto-play (Level 3, after user has clicked "Start Test")
   useEffect(() => {
-    if (autoPlay && !hasPlayed && voices.length > 0) {
-      speakSegments(0)
+    if (autoPlay && !hasPlayed && (voices.length > 0 || !ttsSupported)) {
+      if (ttsSupported) {
+        speakSegments(0)
+      } else {
+        // No TTS: immediately complete after a simulated delay
+        setPlaybackState('complete')
+        setHasPlayed(true)
+        onPlaybackComplete()
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay, voices])
+  }, [autoPlay, voices, ttsSupported])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       cancelledRef.current = true
-      speechSynthesis.cancel()
+      try {
+        safeSpeechSynthesis()?.cancel()
+      } catch {
+        // cleanup errors are non-critical
+      }
     }
   }, [])
 
   const handlePlay = () => {
+    const synth = safeSpeechSynthesis()
+    if (!synth) return
+
     if (playbackState === 'paused') {
-      speechSynthesis.resume()
+      try { synth.resume() } catch { /* ignore */ }
       setPlaybackState('playing')
       return
     }
@@ -228,13 +270,14 @@ export default function AudioPlayer({
   }
 
   const handlePause = () => {
-    speechSynthesis.pause()
+    try { safeSpeechSynthesis()?.pause() } catch { /* ignore */ }
     setPlaybackState('paused')
   }
 
   const handleRestart = () => {
+    const synth = safeSpeechSynthesis()
     cancelledRef.current = true
-    speechSynthesis.cancel()
+    try { synth?.cancel() } catch { /* ignore */ }
     playRoundRef.current = 1
     setPlayRound(1)
     setTimeout(() => {
@@ -246,11 +289,34 @@ export default function AudioPlayer({
 
   const handleStop = () => {
     cancelledRef.current = true
-    speechSynthesis.cancel()
+    try { safeSpeechSynthesis()?.cancel() } catch { /* ignore */ }
     isPlayingRef.current = false
     setPlaybackState('complete')
     setHasPlayed(true)
     onPlaybackComplete()
+  }
+
+  // If TTS is not supported, show a message and auto-complete
+  if (!ttsSupported) {
+    return (
+      <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 text-center">
+        <p className="text-sm text-amber-800 font-medium mb-1">Audio playback unavailable</p>
+        <p className="text-xs text-amber-600 mb-3">
+          Speech synthesis is not supported in this browser. The transcript is shown below instead.
+        </p>
+        {playbackState !== 'complete' && (
+          <button
+            onClick={handleStop}
+            className="py-2 px-6 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition"
+          >
+            Continue to Questions
+          </button>
+        )}
+        {playbackState === 'complete' && (
+          <p className="text-sm text-gray-500">Ready — answer the questions below</p>
+        )}
+      </div>
+    )
   }
 
   const progress = script.length > 0 ? ((currentSegment + 1) / script.length) * 100 : 0
