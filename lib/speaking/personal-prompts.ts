@@ -67,6 +67,8 @@ export function getGuidedEvaluationPrompt(
     ? upgradePhrases.map(p => `- "${p.phrase}" (${p.category})`).join('\n')
     : '(none listed)'
 
+  const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length
+
   return {
     system: `You are a supportive IELTS Speaking coach. The student is at Band 5-5.5 and is practicing with a personalized model answer they've studied.
 
@@ -79,11 +81,34 @@ Evaluate warmly and constructively:
 - Don't penalize divergence from the model answer; the goal is natural fluency, not memorization
 - If the transcript is short or incomplete, note it gently and focus on what's there
 
-Band scores: whole or half numbers (5.0, 5.5, 6.0, etc.) on a 0-9 scale.
+## Band Descriptors — use these to calibrate your scores:
+
+**Band 3-4**: Very short or nearly empty answers. Limited vocabulary with frequent repetition. Many grammatical errors, mostly simple/incomplete sentences. Long pauses, minimal coherence.
+
+**Band 5**: Basic answers that address the question but lack development. Simple vocabulary. Frequent grammatical errors, mostly simple sentences. Some hesitation.
+
+**Band 6**: Adequate answers with some development. Some good vocabulary. Occasional errors, mix of simple and complex sentences. Generally fluent.
+
+**Band 7**: Well-developed answers with clear ideas. Good vocabulary range with some idiomatic items. Few errors, confident use of complex structures. Fluent and coherent.
+
+**Band 8-9**: Sophisticated, fully developed answers. Wide vocabulary used precisely and naturally. Rare errors, wide range of complex structures. Very natural flow.
+
+## Scoring Rules — you MUST follow these:
+
+- Use the FULL scoring range from 3.0 to 9.0. Do NOT cluster scores around 5.0-6.0.
+- Word count matters. Short answers cannot score high on Fluency & Coherence.
+- If the response is under 20 words, Fluency & Coherence MUST be Band 4.0 or below.
+- If the response is empty, off-topic, or incomprehensible, ALL criteria MUST be Band 3.0 or below.
+- If the student shows genuine improvement and uses studied phrases well, reflect that in higher scores.
+- Be accurate — encouragement should not inflate scores beyond what the response deserves.
+
+Band scores: whole or half numbers (3.0, 4.5, 5.0, 6.5, 7.0, 8.5) on a 3-9 scale.
 
 Respond in JSON format only. No other text.`,
 
     user: `IELTS Speaking Part ${part} question: "${question}"
+
+Word count of student's response: ${wordCount} words.
 
 Their personalized model answer (studied in Level 1):
 "${modelAnswer}"

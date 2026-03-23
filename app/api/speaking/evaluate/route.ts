@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const prompt = getEvaluationPrompt(part, responses)
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-20250514',
       max_tokens: 4096,
       system: prompt.system,
       messages: [{ role: 'user', content: prompt.user }],

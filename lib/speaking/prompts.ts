@@ -56,6 +56,9 @@ export function getEvaluationPrompt(
     .map((r, i) => `Question ${i + 1}: ${r.question}\nCandidate's response: ${r.transcript}`)
     .join('\n\n')
 
+  const totalWords = responses.reduce((sum, r) => sum + r.transcript.trim().split(/\s+/).filter(Boolean).length, 0)
+  const avgWords = responses.length > 0 ? Math.round(totalWords / responses.length) : 0
+
   return {
     system: `You are an experienced IELTS Speaking examiner with deep knowledge of the IELTS band descriptors. Evaluate the candidate's speaking performance based on their transcribed responses. Score on the 4 official IELTS Speaking criteria:
 
@@ -64,10 +67,33 @@ export function getEvaluationPrompt(
 3. **Grammatical Range & Accuracy (GRA)**: Variety of sentence structures, accuracy of grammar, complexity of constructions
 4. **Pronunciation**: Based on transcript analysis - infer pronunciation quality from word choice patterns, complexity of vocabulary used, and natural phrasing (since we only have text, focus on what can be reasonably estimated)
 
-Band scores should be given as whole or half numbers (e.g., 5.0, 5.5, 6.0, 6.5, 7.0) on a 0-9 scale.
-Be fair but honest. Most intermediate learners score between 5.0-6.5. Only give 7+ for genuinely strong performance.`,
+## Band Descriptors — use these to calibrate your scores:
+
+**Band 3-4**: Very short or nearly empty answers. Limited vocabulary with frequent repetition. Many grammatical errors, mostly simple/incomplete sentences. Long pauses, minimal coherence. Responses may be off-topic or show misunderstanding.
+
+**Band 5**: Basic answers that address the question but lack development. Simple vocabulary with some repetition. Frequent grammatical errors, mostly simple sentence structures. Some hesitation and pauses, basic organizational structure.
+
+**Band 6**: Adequate answers with some development and relevant detail. Some good vocabulary with occasional less common words. Occasional grammatical errors, mix of simple and complex sentences. Generally fluent with some hesitation, logical organization.
+
+**Band 7**: Well-developed answers with clear, relevant ideas. Good vocabulary range with some idiomatic/less common items used naturally. Few grammatical errors, confident use of complex structures. Fluent and coherent with effective use of discourse markers.
+
+**Band 8-9**: Sophisticated, fully developed answers with nuanced ideas. Wide vocabulary used precisely and naturally, including idiomatic language. Rare grammatical errors, wide range of complex structures used effortlessly. Very natural flow, excellent coherence, feels like a proficient English speaker.
+
+## Scoring Rules — you MUST follow these:
+
+- Use the FULL scoring range from 3.0 to 9.0. Do NOT cluster scores around 5.0-6.0.
+- Word count is a key scoring factor. Short answers cannot score high.
+- If a response averages under 20 words per question, Fluency & Coherence MUST be Band 4.0 or below.
+- If a response is empty, off-topic, or incomprehensible, ALL criteria MUST be Band 3.0 or below.
+- A genuinely strong, detailed response with good language SHOULD score 7.0+. Do not hold back.
+- A weak, short, error-filled response SHOULD score 4.0-5.0. Do not be generous.
+- Be accurate and discriminating. The scores must reflect real IELTS standards.
+
+Band scores should be given as whole or half numbers (e.g., 3.0, 4.5, 5.0, 6.5, 7.0, 8.5) on a 3-9 scale.`,
 
     user: `This is an IELTS Speaking Part ${part} practice session.
+
+Word count stats: ${totalWords} total words across ${responses.length} response(s), averaging ${avgWords} words per response.
 
 ${responsesText}
 
