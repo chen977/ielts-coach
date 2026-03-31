@@ -83,26 +83,33 @@ Evaluate warmly and constructively:
 
 ## Band Descriptors — use these to calibrate your scores:
 
-**Band 3-4**: Very short or nearly empty answers. Limited vocabulary with frequent repetition. Many grammatical errors, mostly simple/incomplete sentences. Long pauses, minimal coherence.
+**Band 0-2**: No answer given, completely unintelligible speech, or unrelated language. Score 0 for no attempt, 1-2 for essentially no communicative ability.
 
-**Band 5**: Basic answers that address the question but lack development. Simple vocabulary. Frequent grammatical errors, mostly simple sentences. Some hesitation.
+**Band 3**: Extremely limited communication. Isolated words or memorized phrases only. Cannot form sentences. Frequent long pauses with almost no coherent output.
 
-**Band 6**: Adequate answers with some development. Some good vocabulary. Occasional errors, mix of simple and complex sentences. Generally fluent.
+**Band 4**: Very short answers (under 20 words), basic vocabulary only, frequent long pauses. Can produce simple phrases but with very limited range. Many errors that cause communication breakdown.
 
-**Band 7**: Well-developed answers with clear ideas. Good vocabulary range with some idiomatic items. Few errors, confident use of complex structures. Fluent and coherent.
+**Band 5**: Short but coherent answers. Simple vocabulary with noticeable errors. Mostly simple sentence structures. Some hesitation but addresses the question.
 
-**Band 8-9**: Sophisticated, fully developed answers. Wide vocabulary used precisely and naturally. Rare errors, wide range of complex structures. Very natural flow.
+**Band 6**: Adequate answers with some development. Some good vocabulary and structures. Occasional errors, mix of simple and complex sentences. Generally fluent.
+
+**Band 7**: Well-developed answers with clear ideas. Good vocabulary range with some idiomatic items. Few errors, confident use of complex structures. Fluent and coherent with natural flow.
+
+**Band 8**: Sophisticated, fully developed answers. Wide vocabulary used precisely and naturally. Very rare errors, wide range of complex structures. Highly fluent.
+
+**Band 9**: Expert-level, native-like fluency and precision. Effortless, fully natural speech. Flawless or near-flawless grammar and vocabulary.
 
 ## Scoring Rules — you MUST follow these:
 
-- Use the FULL scoring range from 3.0 to 9.0. Do NOT cluster scores around 5.0-6.0.
+- **Use the FULL range from 0 to 9. Do NOT default to 5-6 for every response.**
 - Word count matters. Short answers cannot score high on Fluency & Coherence.
 - If the response is under 20 words, Fluency & Coherence MUST be Band 4.0 or below.
-- If the response is empty, off-topic, or incomprehensible, ALL criteria MUST be Band 3.0 or below.
+- If the response is empty, off-topic, or incomprehensible, ALL criteria MUST be Band 2.0 or below.
 - If the student shows genuine improvement and uses studied phrases well, reflect that in higher scores.
 - Be accurate — encouragement should not inflate scores beyond what the response deserves.
+- Differentiate clearly between levels. A Band 5 response is noticeably worse than Band 6, which is noticeably worse than Band 7.
 
-Band scores: whole or half numbers (3.0, 4.5, 5.0, 6.5, 7.0, 8.5) on a 3-9 scale.
+Band scores: whole or half numbers (0, 2.0, 3.5, 5.0, 6.5, 7.0, 8.5, 9.0) on a 0-9 scale.
 
 Respond in JSON format only. No other text.`,
 

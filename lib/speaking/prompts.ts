@@ -69,27 +69,34 @@ export function getEvaluationPrompt(
 
 ## Band Descriptors — use these to calibrate your scores:
 
-**Band 3-4**: Very short or nearly empty answers. Limited vocabulary with frequent repetition. Many grammatical errors, mostly simple/incomplete sentences. Long pauses, minimal coherence. Responses may be off-topic or show misunderstanding.
+**Band 0-2**: No answer given, completely unintelligible speech, or unrelated language (e.g., not English, random words). Score 0 for no attempt, 1-2 for essentially no communicative ability.
 
-**Band 5**: Basic answers that address the question but lack development. Simple vocabulary with some repetition. Frequent grammatical errors, mostly simple sentence structures. Some hesitation and pauses, basic organizational structure.
+**Band 3**: Extremely limited communication. Isolated words or memorized phrases only. Cannot form sentences. Frequent long pauses with almost no coherent output.
 
-**Band 6**: Adequate answers with some development and relevant detail. Some good vocabulary with occasional less common words. Occasional grammatical errors, mix of simple and complex sentences. Generally fluent with some hesitation, logical organization.
+**Band 4**: Very short answers (under 20 words on average), basic vocabulary only, frequent long pauses. Can produce simple phrases but with very limited range. Many errors that cause communication breakdown.
 
-**Band 7**: Well-developed answers with clear, relevant ideas. Good vocabulary range with some idiomatic/less common items used naturally. Few grammatical errors, confident use of complex structures. Fluent and coherent with effective use of discourse markers.
+**Band 5**: Short but coherent answers that address the question. Simple vocabulary with noticeable repetition. Frequent grammatical errors, mostly simple sentence structures. Some hesitation and pauses, basic organizational structure.
 
-**Band 8-9**: Sophisticated, fully developed answers with nuanced ideas. Wide vocabulary used precisely and naturally, including idiomatic language. Rare grammatical errors, wide range of complex structures used effortlessly. Very natural flow, excellent coherence, feels like a proficient English speaker.
+**Band 6**: Adequate length answers with some development and relevant detail. Some good vocabulary with occasional less common words. Occasional grammatical errors, mix of simple and complex sentences. Generally fluent with some hesitation, logical organization.
+
+**Band 7**: Well-developed answers with clear, relevant ideas. Good vocabulary range with some idiomatic/less common items used naturally. Few grammatical errors, confident use of complex structures. Fluent and coherent with effective use of discourse markers and natural flow.
+
+**Band 8**: Sophisticated, fully developed answers with nuanced ideas. Wide vocabulary used precisely and naturally, including idiomatic language. Very rare grammatical errors, wide range of complex structures used effortlessly. Highly fluent with excellent coherence.
+
+**Band 9**: Expert-level, native-like fluency and precision. Effortless, fully natural speech with complete flexibility. Flawless or near-flawless grammar and vocabulary. Feels indistinguishable from an educated native speaker.
 
 ## Scoring Rules — you MUST follow these:
 
-- Use the FULL scoring range from 3.0 to 9.0. Do NOT cluster scores around 5.0-6.0.
+- **Use the FULL range from 0 to 9. Do NOT default to 5-6 for every response.**
 - Word count is a key scoring factor. Short answers cannot score high.
 - If a response averages under 20 words per question, Fluency & Coherence MUST be Band 4.0 or below.
-- If a response is empty, off-topic, or incomprehensible, ALL criteria MUST be Band 3.0 or below.
+- If a response is empty, off-topic, or incomprehensible, ALL criteria MUST be Band 2.0 or below.
 - A genuinely strong, detailed response with good language SHOULD score 7.0+. Do not hold back.
-- A weak, short, error-filled response SHOULD score 4.0-5.0. Do not be generous.
+- A weak, short, error-filled response SHOULD score 3.0-4.0. Do not be generous.
 - Be accurate and discriminating. The scores must reflect real IELTS standards.
+- Differentiate clearly between levels. A Band 5 response is noticeably worse than Band 6, which is noticeably worse than Band 7.
 
-Band scores should be given as whole or half numbers (e.g., 3.0, 4.5, 5.0, 6.5, 7.0, 8.5) on a 3-9 scale.`,
+Band scores should be given as whole or half numbers (e.g., 0, 2.0, 3.5, 5.0, 6.5, 7.0, 8.5, 9.0) on a 0-9 scale.`,
 
     user: `This is an IELTS Speaking Part ${part} practice session.
 

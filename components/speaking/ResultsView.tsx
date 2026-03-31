@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import type { EvaluationResult, SpeakingPart } from '@/lib/speaking/types'
 import BandScoreCard from './BandScoreCard'
 import Link from 'next/link'
@@ -19,7 +18,6 @@ function getOverallColor(band: number) {
 }
 
 export default function ResultsView({ evaluation, part, onNewSession }: ResultsViewProps) {
-  const [expandedQ, setExpandedQ] = useState<number | null>(null)
   const color = getOverallColor(evaluation.overallBand)
 
   return (
@@ -48,37 +46,22 @@ export default function ResultsView({ evaluation, part, onNewSession }: ResultsV
           </div>
           <div className="divide-y divide-gray-50">
             {evaluation.perQuestion.map((q, i) => (
-              <div key={i}>
-                <button
-                  onClick={() => setExpandedQ(expandedQ === i ? null : i)}
-                  className="w-full px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
-                >
-                  <span className="text-sm text-gray-700 line-clamp-1 pr-4">
-                    <span className="text-gray-400 font-medium">Q{i + 1}:</span> {q.question}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${expandedQ === i ? 'rotate-180' : ''}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {expandedQ === i && (
-                  <div className="px-5 pb-4 space-y-3">
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 mb-1">Your Response</p>
-                      <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{q.transcript}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-emerald-500 mb-1">Model Answer (Band 7-8)</p>
-                      <p className="text-sm text-gray-600 bg-emerald-50 rounded-lg p-3">{q.modelAnswer}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-sky-500 mb-1">Feedback</p>
-                      <p className="text-sm text-gray-600">{q.feedback}</p>
-                    </div>
-                  </div>
-                )}
+              <div key={i} className="px-5 py-4 space-y-3">
+                <p className="text-sm text-gray-700 font-medium">
+                  <span className="text-gray-400">Q{i + 1}:</span> {q.question}
+                </p>
+                <div>
+                  <p className="text-xs font-medium text-gray-400 mb-1">Your Response</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{q.transcript}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-emerald-500 mb-1">Model Answer (Band 7-8)</p>
+                  <p className="text-sm text-gray-600 bg-emerald-50 rounded-lg p-3">{q.modelAnswer}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-sky-500 mb-1">Feedback</p>
+                  <p className="text-sm text-gray-600">{q.feedback}</p>
+                </div>
               </div>
             ))}
           </div>
