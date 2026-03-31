@@ -69,34 +69,49 @@ export default async function DashboardPage() {
 
   const { data } = await supabase.from('profiles').select('*').eq('id', user!.id).single()
   const profile = data as Profile | null
-  const [{ count: speakingCount }, { count: listeningCount }, { count: vocabCount }] =
-    await Promise.all([
+
+  // Fetch counts — default to 0 if any query fails
+  let speakingCount = 0
+  let listeningCount = 0
+  let vocabCount = 0
+  let speakingThisWeek = 0
+  let listeningThisWeek = 0
+
+  try {
+    const [spk, lst, voc] = await Promise.all([
       supabase.from('speaking_sessions').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
       supabase.from('listening_sessions').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
       supabase.from('vocabulary').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
     ])
+    speakingCount = spk.count ?? 0
+    listeningCount = lst.count ?? 0
+    vocabCount = voc.count ?? 0
+
+    const now = new Date()
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - now.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+
+    const [spkWeek, lstWeek] = await Promise.all([
+      supabase
+        .from('speaking_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .gte('created_at', weekStart.toISOString()),
+      supabase
+        .from('listening_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .gte('created_at', weekStart.toISOString()),
+    ])
+    speakingThisWeek = spkWeek.count ?? 0
+    listeningThisWeek = lstWeek.count ?? 0
+  } catch (err) {
+    console.error('Dashboard query error:', err)
+  }
 
   const firstName = profile?.display_name?.split(' ')[0] ?? 'there'
-
-  const now = new Date()
-  const weekStart = new Date(now)
-  weekStart.setDate(now.getDate() - now.getDay())
-  weekStart.setHours(0, 0, 0, 0)
-
-  const [{ count: speakingThisWeek }, { count: listeningThisWeek }] = await Promise.all([
-    supabase
-      .from('speaking_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user!.id)
-      .gte('created_at', weekStart.toISOString()),
-    supabase
-      .from('listening_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user!.id)
-      .gte('created_at', weekStart.toISOString()),
-  ])
-
-  const totalSessions = (speakingCount ?? 0) + (listeningCount ?? 0)
+  const totalSessions = speakingCount + listeningCount
   const isNewUser = totalSessions === 0
 
   return (
@@ -132,7 +147,7 @@ export default async function DashboardPage() {
         />
         <StatCard
           label="Vocabulary"
-          value={vocabCount ?? 0}
+          value={vocabCount}
           sub="words learned"
           href="/vocabulary"
         />
@@ -146,9 +161,9 @@ export default async function DashboardPage() {
 
       {/* Weekly goals */}
       <WeeklyGoals
-        speakingCurrent={speakingThisWeek ?? 0}
+        speakingCurrent={speakingThisWeek}
         speakingGoal={profile?.weekly_speaking_goal ?? 3}
-        listeningCurrent={listeningThisWeek ?? 0}
+        listeningCurrent={listeningThisWeek}
         listeningGoal={profile?.weekly_listening_goal ?? 2}
       />
 

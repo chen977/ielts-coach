@@ -18,15 +18,17 @@ const CRITERION_LABELS: Record<string, string> = {
 export default function SkillBreakdown({ speakingBreakdown, listeningBreakdown }: SkillBreakdownProps) {
   const [view, setView] = useState<'speaking' | 'listening'>('speaking')
 
-  const hasSpeakingData = speakingBreakdown.some(s => s.average > 0)
-  const hasListeningData = listeningBreakdown.some(s => s.average > 0)
+  const safeSpBreakdown = speakingBreakdown ?? []
+  const safeLiBreakdown = listeningBreakdown ?? []
+  const hasSpeakingData = safeSpBreakdown.some(s => s.average > 0)
+  const hasListeningData = safeLiBreakdown.some(s => s.average > 0)
 
-  const speakingData = speakingBreakdown.map(s => ({
+  const speakingData = safeSpBreakdown.map(s => ({
     name: CRITERION_LABELS[s.criterion] || s.criterion,
     score: s.average,
   }))
 
-  const listeningData = listeningBreakdown.map(s => ({
+  const listeningData = safeLiBreakdown.map(s => ({
     name: `Section ${s.section}`,
     score: s.average,
   }))

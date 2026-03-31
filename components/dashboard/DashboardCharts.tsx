@@ -25,9 +25,15 @@ export default function DashboardCharts({ targetBand, streakDays }: DashboardCha
 
   useEffect(() => {
     fetch('/api/dashboard/stats')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('API error')
+        return res.json()
+      })
       .then(data => {
-        setStats(data)
+        // Validate the response has the expected shape
+        if (data && Array.isArray(data.bandTrend)) {
+          setStats(data)
+        }
         setLoading(false)
       })
       .catch(() => setLoading(false))

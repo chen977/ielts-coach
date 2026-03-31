@@ -12,10 +12,10 @@ interface VocabStatsProps {
 
 const BOX_COLORS = ['#f59e0b', '#fb923c', '#0ea5e9', '#8b5cf6', '#10b981']
 
-export default function VocabStats({ total, due, mastered, byBox }: VocabStatsProps) {
+export default function VocabStats({ total = 0, due = 0, mastered = 0, byBox = [] }: VocabStatsProps) {
   const masteryPct = total > 0 ? Math.round((mastered / total) * 100) : 0
 
-  const boxData = byBox.map((count, i) => ({
+  const boxData = (byBox ?? []).map((count, i) => ({
     name: `Box ${i + 1}`,
     count,
     color: BOX_COLORS[i],

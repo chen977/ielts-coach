@@ -18,12 +18,12 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s = supabase as any
     const [
-      { data: speakingSessions },
-      { data: listeningSessions },
-      { count: totalVocab },
-      { count: dueVocab },
-      { count: masteredVocab },
-      { data: vocabByBox },
+      speakingResult,
+      listeningResult,
+      totalVocabResult,
+      dueVocabResult,
+      masteredVocabResult,
+      vocabByBoxResult,
     ] = await Promise.all([
       s
         .from('speaking_sessions')
@@ -55,7 +55,17 @@ export async function GET() {
         .from('vocabulary')
         .select('srs_box')
         .eq('user_id', user.id),
-    ]) as { data: any[]; count: number }[]
+    ])
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const speakingSessions: any[] = speakingResult?.data ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const listeningSessions: any[] = listeningResult?.data ?? []
+    const totalVocab: number = totalVocabResult?.count ?? 0
+    const dueVocab: number = dueVocabResult?.count ?? 0
+    const masteredVocab: number = masteredVocabResult?.count ?? 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vocabByBox: any[] = vocabByBoxResult?.data ?? []
 
     // Band trend data
     interface BandTrendPoint {
@@ -65,7 +75,7 @@ export async function GET() {
     }
     const bandTrend: BandTrendPoint[] = []
 
-    for (const s of speakingSessions ?? []) {
+    for (const s of speakingSessions) {
       const scores = s.scores as { overall?: number } | null
       if (scores?.overall) {
         const date = new Date(s.created_at).toISOString().split('T')[0]
@@ -78,7 +88,7 @@ export async function GET() {
       }
     }
 
-    for (const l of listeningSessions ?? []) {
+    for (const l of listeningSessions) {
       if (l.band_estimate) {
         const date = new Date(l.created_at).toISOString().split('T')[0]
         const existing = bandTrend.find(p => p.date === date)
@@ -100,7 +110,7 @@ export async function GET() {
       Pronunciation: { sum: 0, count: 0 },
     }
 
-    for (const s of speakingSessions ?? []) {
+    for (const s of speakingSessions) {
       const scores = s.scores as { criteria?: { criterion: string; band: number }[] } | null
       if (scores?.criteria) {
         for (const c of scores.criteria) {
@@ -125,7 +135,7 @@ export async function GET() {
       4: { sum: 0, count: 0 },
     }
 
-    for (const l of listeningSessions ?? []) {
+    for (const l of listeningSessions) {
       if (l.band_estimate && sectionAccum[l.section]) {
         sectionAccum[l.section].sum += l.band_estimate
         sectionAccum[l.section].count++
@@ -139,7 +149,7 @@ export async function GET() {
 
     // Vocab by box distribution
     const boxCounts = [0, 0, 0, 0, 0]
-    for (const v of vocabByBox ?? []) {
+    for (const v of vocabByBox) {
       const box = (v.srs_box as number) ?? 1
       if (box >= 1 && box <= 5) boxCounts[box - 1]++
     }
@@ -147,8 +157,8 @@ export async function GET() {
     // Practice days for streak calendar (last 28 days)
     const practiceDays: string[] = []
     const allSessions = [
-      ...(speakingSessions ?? []).map(s => s.created_at),
-      ...(listeningSessions ?? []).map(l => l.created_at),
+      ...(speakingSessions).map(s => s.created_at),
+      ...(listeningSessions).map(l => l.created_at),
     ]
     for (const dateStr of allSessions) {
       const day = new Date(dateStr).toISOString().split('T')[0]
@@ -160,9 +170,9 @@ export async function GET() {
       speakingBreakdown,
       listeningBreakdown,
       vocabStats: {
-        total: totalVocab ?? 0,
-        due: dueVocab ?? 0,
-        mastered: masteredVocab ?? 0,
+        total: totalVocab,
+        due: dueVocab,
+        mastered: masteredVocab,
         byBox: boxCounts,
       },
       practiceDays: practiceDays.sort(),

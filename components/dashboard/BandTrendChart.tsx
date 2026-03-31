@@ -9,7 +9,7 @@ interface BandTrendPoint {
 }
 
 export default function BandTrendChart({ data, targetBand }: { data: BandTrendPoint[]; targetBand: number }) {
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <h3 className="font-semibold text-gray-900 mb-4">Band Score Trend</h3>
