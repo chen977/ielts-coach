@@ -18,7 +18,7 @@ export async function extractAndSaveVocabulary(
   supabase: SupabaseClient,
   userId: string,
   sessionId: string,
-  sourceType: 'speaking' | 'listening',
+  sourceType: 'speaking' | 'listening' | 'writing',
   transcript: string,
   topic?: string
 ): Promise<void> {

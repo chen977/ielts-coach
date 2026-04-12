@@ -12,9 +12,10 @@ interface DashboardChartsProps {
 }
 
 interface StatsData {
-  bandTrend: { date: string; speaking?: number; listening?: number }[]
+  bandTrend: { date: string; speaking?: number; listening?: number; writing?: number }[]
   speakingBreakdown: { criterion: string; average: number }[]
   listeningBreakdown: { section: number; average: number }[]
+  writingBreakdown?: { criterion: string; average: number }[]
   vocabStats: { total: number; due: number; mastered: number; byBox: number[] }
   practiceDays: string[]
 }
@@ -60,6 +61,7 @@ export default function DashboardCharts({ targetBand, streakDays }: DashboardCha
       <SkillBreakdown
         speakingBreakdown={stats.speakingBreakdown}
         listeningBreakdown={stats.listeningBreakdown}
+        writingBreakdown={stats.writingBreakdown || []}
       />
       <StreakTracker streakDays={streakDays} practiceDays={stats.practiceDays} />
       <VocabStats {...stats.vocabStats} />

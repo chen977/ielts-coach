@@ -6,6 +6,7 @@ interface BandTrendPoint {
   date: string
   speaking?: number
   listening?: number
+  writing?: number
 }
 
 export default function BandTrendChart({ data, targetBand }: { data: BandTrendPoint[]; targetBand: number }) {
@@ -49,7 +50,7 @@ export default function BandTrendChart({ data, targetBand }: { data: BandTrendPo
             <Tooltip
               contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 13 }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: any) => [Number(value).toFixed(1), name === 'speaking' ? 'Speaking' : 'Listening']}
+              formatter={(value: any, name: any) => [Number(value).toFixed(1), name === 'speaking' ? 'Speaking' : name === 'writing' ? 'Writing' : 'Listening']}
             />
             <ReferenceLine
               y={targetBand}
@@ -75,6 +76,15 @@ export default function BandTrendChart({ data, targetBand }: { data: BandTrendPo
               connectNulls
               name="listening"
             />
+            <Line
+              type="monotone"
+              dataKey="writing"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              dot={{ r: 4, fill: '#f59e0b' }}
+              connectNulls
+              name="writing"
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -86,6 +96,10 @@ export default function BandTrendChart({ data, targetBand }: { data: BandTrendPo
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <div className="w-3 h-0.5 bg-emerald-500 rounded" />
           Listening
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="w-3 h-0.5 bg-amber-500 rounded" />
+          Writing
         </div>
       </div>
     </div>

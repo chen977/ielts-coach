@@ -17,6 +17,7 @@ export interface Database {
           current_estimated_band: number | null
           weekly_speaking_goal: number
           weekly_listening_goal: number
+          weekly_writing_goal: number
           weekly_vocab_goal: number
           streak_days: number
           last_practice_date: string | null
@@ -152,6 +153,94 @@ export interface Database {
           band_estimate?: number | null
         }
       }
+      writing_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          task: number
+          level: number
+          topic_id: string | null
+          topic_text: string | null
+          essay_type: string | null
+          chart_type: string | null
+          chart_data: Json | null
+          personal_ideas: Json | null
+          user_essay: string | null
+          model_essay: string | null
+          model_essay_data: Json | null
+          word_count: number | null
+          scores: Json | null
+          feedback: Json | null
+          time_spent_seconds: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          task: number
+          level?: number
+          topic_id?: string | null
+          topic_text?: string | null
+          essay_type?: string | null
+          chart_type?: string | null
+          chart_data?: Json | null
+          personal_ideas?: Json | null
+          user_essay?: string | null
+          model_essay?: string | null
+          model_essay_data?: Json | null
+          word_count?: number | null
+          scores?: Json | null
+          feedback?: Json | null
+          time_spent_seconds?: number | null
+          created_at?: string
+        }
+        Update: {
+          level?: number
+          user_essay?: string | null
+          word_count?: number | null
+          scores?: Json | null
+          feedback?: Json | null
+          time_spent_seconds?: number | null
+        }
+      }
+      personal_essays: {
+        Row: {
+          id: string
+          user_id: string
+          topic_id: string
+          task: number
+          essay_type: string | null
+          personal_ideas: Json | null
+          model_essay: string
+          model_essay_data: Json | null
+          times_practiced: number
+          best_band: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          topic_id: string
+          task: number
+          essay_type?: string | null
+          personal_ideas?: Json | null
+          model_essay: string
+          model_essay_data?: Json | null
+          times_practiced?: number
+          best_band?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          personal_ideas?: Json | null
+          model_essay?: string
+          model_essay_data?: Json | null
+          times_practiced?: number
+          best_band?: number | null
+          updated_at?: string
+        }
+      }
       vocabulary: {
         Row: {
           id: string
@@ -207,3 +296,5 @@ export type SpeakingSession = Database['public']['Tables']['speaking_sessions'][
 export type ListeningSession = Database['public']['Tables']['listening_sessions']['Row']
 export type VocabularyWord = Database['public']['Tables']['vocabulary']['Row']
 export type PersonalAnswerRow = Database['public']['Tables']['personal_answers']['Row']
+export type WritingSession = Database['public']['Tables']['writing_sessions']['Row']
+export type PersonalEssayRow = Database['public']['Tables']['personal_essays']['Row']

@@ -6,30 +6,44 @@ import HistoryClient from '@/components/history/HistoryClient'
 type HistoryItem =
   | { type: 'speaking'; id: string; part: number; scores: Record<string, unknown> | null; created_at: string }
   | { type: 'listening'; id: string; section: number; score: number | null; band_estimate: number | null; created_at: string }
+  | { type: 'writing'; id: string; task: number; scores: Record<string, unknown> | null; created_at: string }
 
 export default async function HistoryPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: speakingData } = await supabase
-    .from('speaking_sessions')
-    .select('id, part, scores, created_at')
-    .eq('user_id', user!.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-  const { data: listeningData } = await supabase
-    .from('listening_sessions')
-    .select('id, section, score, band_estimate, created_at')
-    .eq('user_id', user!.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = supabase as any
+
+  const [{ data: speakingData }, { data: listeningData }, { data: writingData }] = await Promise.all([
+    supabase
+      .from('speaking_sessions')
+      .select('id, part, scores, created_at')
+      .eq('user_id', user!.id)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('listening_sessions')
+      .select('id, section, score, band_estimate, created_at')
+      .eq('user_id', user!.id)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    s
+      .from('writing_sessions')
+      .select('id, task, scores, created_at')
+      .eq('user_id', user!.id)
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ])
 
   const speaking = (speakingData ?? []) as Pick<SpeakingSession, 'id' | 'part' | 'scores' | 'created_at'>[]
   const listening = (listeningData ?? []) as Pick<ListeningSession, 'id' | 'section' | 'score' | 'band_estimate' | 'created_at'>[]
+  const writing = (writingData ?? []) as { id: string; task: number; scores: Record<string, unknown> | null; created_at: string }[]
 
   const items: HistoryItem[] = [
     ...speaking.map(s => ({ type: 'speaking' as const, id: s.id, part: s.part, scores: s.scores as Record<string, unknown> | null, created_at: s.created_at })),
     ...listening.map(l => ({ type: 'listening' as const, id: l.id, section: l.section, score: l.score, band_estimate: l.band_estimate, created_at: l.created_at })),
+    ...writing.map(w => ({ type: 'writing' as const, id: w.id, task: w.task, scores: w.scores, created_at: w.created_at })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   return (

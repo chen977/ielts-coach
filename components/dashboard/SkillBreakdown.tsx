@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface SkillBreakdownProps {
   speakingBreakdown: { criterion: string; average: number }[]
   listeningBreakdown: { section: number; average: number }[]
+  writingBreakdown: { criterion: string; average: number }[]
 }
 
 const CRITERION_LABELS: Record<string, string> = {
@@ -13,15 +14,19 @@ const CRITERION_LABELS: Record<string, string> = {
   LR: 'Lexical',
   GRA: 'Grammar',
   Pronunciation: 'Pronun.',
+  TA: 'Task Ach.',
+  CC: 'Coherence',
 }
 
-export default function SkillBreakdown({ speakingBreakdown, listeningBreakdown }: SkillBreakdownProps) {
-  const [view, setView] = useState<'speaking' | 'listening'>('speaking')
+export default function SkillBreakdown({ speakingBreakdown, listeningBreakdown, writingBreakdown }: SkillBreakdownProps) {
+  const [view, setView] = useState<'speaking' | 'listening' | 'writing'>('speaking')
 
   const safeSpBreakdown = speakingBreakdown ?? []
   const safeLiBreakdown = listeningBreakdown ?? []
+  const safeWrBreakdown = writingBreakdown ?? []
   const hasSpeakingData = safeSpBreakdown.some(s => s.average > 0)
   const hasListeningData = safeLiBreakdown.some(s => s.average > 0)
+  const hasWritingData = safeWrBreakdown.some(s => s.average > 0)
 
   const speakingData = safeSpBreakdown.map(s => ({
     name: CRITERION_LABELS[s.criterion] || s.criterion,
@@ -33,9 +38,14 @@ export default function SkillBreakdown({ speakingBreakdown, listeningBreakdown }
     score: s.average,
   }))
 
-  const data = view === 'speaking' ? speakingData : listeningData
-  const hasData = view === 'speaking' ? hasSpeakingData : hasListeningData
-  const barColor = view === 'speaking' ? '#0ea5e9' : '#10b981'
+  const writingData = safeWrBreakdown.map(s => ({
+    name: CRITERION_LABELS[s.criterion] || s.criterion,
+    score: s.average,
+  }))
+
+  const data = view === 'speaking' ? speakingData : view === 'writing' ? writingData : listeningData
+  const hasData = view === 'speaking' ? hasSpeakingData : view === 'writing' ? hasWritingData : hasListeningData
+  const barColor = view === 'speaking' ? '#0ea5e9' : view === 'writing' ? '#f59e0b' : '#10b981'
 
   function getBarColor(score: number) {
     if (score >= 7) return '#10b981'
@@ -63,6 +73,14 @@ export default function SkillBreakdown({ speakingBreakdown, listeningBreakdown }
             }`}
           >
             Listening
+          </button>
+          <button
+            onClick={() => setView('writing')}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition ${
+              view === 'writing' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            Writing
           </button>
         </div>
       </div>

@@ -73,18 +73,25 @@ export default async function DashboardPage() {
   // Fetch counts — default to 0 if any query fails
   let speakingCount = 0
   let listeningCount = 0
+  let writingCount = 0
   let vocabCount = 0
   let speakingThisWeek = 0
   let listeningThisWeek = 0
+  let writingThisWeek = 0
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = supabase as any
 
   try {
-    const [spk, lst, voc] = await Promise.all([
+    const [spk, lst, wrt, voc] = await Promise.all([
       supabase.from('speaking_sessions').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
       supabase.from('listening_sessions').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
+      s.from('writing_sessions').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
       supabase.from('vocabulary').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
     ])
     speakingCount = spk.count ?? 0
     listeningCount = lst.count ?? 0
+    writingCount = wrt.count ?? 0
     vocabCount = voc.count ?? 0
 
     const now = new Date()
@@ -92,7 +99,7 @@ export default async function DashboardPage() {
     weekStart.setDate(now.getDate() - now.getDay())
     weekStart.setHours(0, 0, 0, 0)
 
-    const [spkWeek, lstWeek] = await Promise.all([
+    const [spkWeek, lstWeek, wrtWeek] = await Promise.all([
       supabase
         .from('speaking_sessions')
         .select('*', { count: 'exact', head: true })
@@ -103,15 +110,21 @@ export default async function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user!.id)
         .gte('created_at', weekStart.toISOString()),
+      s
+        .from('writing_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .gte('created_at', weekStart.toISOString()),
     ])
     speakingThisWeek = spkWeek.count ?? 0
     listeningThisWeek = lstWeek.count ?? 0
+    writingThisWeek = wrtWeek.count ?? 0
   } catch (err) {
     console.error('Dashboard query error:', err)
   }
 
   const firstName = profile?.display_name?.split(' ')[0] ?? 'there'
-  const totalSessions = speakingCount + listeningCount
+  const totalSessions = speakingCount + listeningCount + writingCount
   const isNewUser = totalSessions === 0
 
   return (
@@ -165,6 +178,8 @@ export default async function DashboardPage() {
         speakingGoal={profile?.weekly_speaking_goal ?? 3}
         listeningCurrent={listeningThisWeek}
         listeningGoal={profile?.weekly_listening_goal ?? 2}
+        writingCurrent={writingThisWeek}
+        writingGoal={(profile as Record<string, unknown>)?.weekly_writing_goal as number ?? 2}
       />
 
       {/* Charts section */}
@@ -196,6 +211,17 @@ export default async function DashboardPage() {
             icon={
               <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            }
+          />
+          <PracticeCard
+            title="Writing Practice"
+            description="Study model essays, practice writing, and get detailed feedback."
+            href="/practice/writing"
+            color="bg-amber-50"
+            icon={
+              <svg className="w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             }
           />

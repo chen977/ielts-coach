@@ -20,6 +20,7 @@ export async function GET() {
     const [
       speakingResult,
       listeningResult,
+      writingResult,
       totalVocabResult,
       dueVocabResult,
       masteredVocabResult,
@@ -34,6 +35,12 @@ export async function GET() {
       s
         .from('listening_sessions')
         .select('section, score, band_estimate, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: true }),
+      s
+        .from('writing_sessions')
+        .select('task, scores, created_at')
         .eq('user_id', user.id)
         .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: true }),
@@ -61,6 +68,8 @@ export async function GET() {
     const speakingSessions: any[] = speakingResult?.data ?? []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const listeningSessions: any[] = listeningResult?.data ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const writingSessions: any[] = writingResult?.data ?? []
     const totalVocab: number = totalVocabResult?.count ?? 0
     const dueVocab: number = dueVocabResult?.count ?? 0
     const masteredVocab: number = masteredVocabResult?.count ?? 0
@@ -72,6 +81,7 @@ export async function GET() {
       date: string
       speaking?: number
       listening?: number
+      writing?: number
     }
     const bandTrend: BandTrendPoint[] = []
 
@@ -100,7 +110,45 @@ export async function GET() {
       }
     }
 
+    for (const w of writingSessions) {
+      const scores = w.scores as { overall?: number } | null
+      if (scores?.overall) {
+        const date = new Date(w.created_at).toISOString().split('T')[0]
+        const existing = bandTrend.find(p => p.date === date)
+        if (existing) {
+          existing.writing = scores.overall
+        } else {
+          bandTrend.push({ date, writing: scores.overall })
+        }
+      }
+    }
+
     bandTrend.sort((a, b) => a.date.localeCompare(b.date))
+
+    // Writing criteria averages
+    const writingCriteriaAccum: Record<string, { sum: number; count: number }> = {
+      TA: { sum: 0, count: 0 },
+      CC: { sum: 0, count: 0 },
+      LR: { sum: 0, count: 0 },
+      GRA: { sum: 0, count: 0 },
+    }
+
+    for (const w of writingSessions) {
+      const scores = w.scores as { criteria?: { criterion: string; band: number }[] } | null
+      if (scores?.criteria) {
+        for (const c of scores.criteria) {
+          if (writingCriteriaAccum[c.criterion]) {
+            writingCriteriaAccum[c.criterion].sum += c.band
+            writingCriteriaAccum[c.criterion].count++
+          }
+        }
+      }
+    }
+
+    const writingBreakdown = Object.entries(writingCriteriaAccum).map(([criterion, { sum, count }]) => ({
+      criterion,
+      average: count > 0 ? Math.round((sum / count) * 10) / 10 : 0,
+    }))
 
     // Speaking criteria averages
     const criteriaAccum: Record<string, { sum: number; count: number }> = {
@@ -159,6 +207,7 @@ export async function GET() {
     const allSessions = [
       ...(speakingSessions).map(s => s.created_at),
       ...(listeningSessions).map(l => l.created_at),
+      ...(writingSessions).map(w => w.created_at),
     ]
     for (const dateStr of allSessions) {
       const day = new Date(dateStr).toISOString().split('T')[0]
@@ -169,6 +218,7 @@ export async function GET() {
       bandTrend,
       speakingBreakdown,
       listeningBreakdown,
+      writingBreakdown,
       vocabStats: {
         total: totalVocab,
         due: dueVocab,

@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [targetBand, setTargetBand] = useState('7.0')
   const [speakingGoal, setSpeakingGoal] = useState('3')
   const [listeningGoal, setListeningGoal] = useState('2')
+  const [writingGoal, setWritingGoal] = useState('2')
   const [vocabGoal, setVocabGoal] = useState('20')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -27,6 +28,7 @@ export default function SettingsPage() {
           setTargetBand(String(p.target_band ?? 7.0))
           setSpeakingGoal(String(p.weekly_speaking_goal ?? 3))
           setListeningGoal(String(p.weekly_listening_goal ?? 2))
+          setWritingGoal(String((p as Record<string, unknown>).weekly_writing_goal ?? 2))
           setVocabGoal(String(p.weekly_vocab_goal ?? 20))
         }
       })
@@ -49,6 +51,7 @@ export default function SettingsPage() {
       target_band: parseFloat(targetBand),
       weekly_speaking_goal: parseInt(speakingGoal),
       weekly_listening_goal: parseInt(listeningGoal),
+      weekly_writing_goal: parseInt(writingGoal),
       weekly_vocab_goal: parseInt(vocabGoal),
     }).eq('id', user.id)
 
@@ -113,9 +116,9 @@ export default function SettingsPage() {
         <hr className="border-gray-100" />
         <h2 className="font-semibold text-gray-900">Weekly goals</h2>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Speaking sessions</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Speaking</label>
             <input
               type="number"
               min={1}
@@ -126,13 +129,24 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Listening tests</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Listening</label>
             <input
               type="number"
               min={1}
               max={14}
               value={listeningGoal}
               onChange={e => setListeningGoal(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-gray-900 transition"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Writing</label>
+            <input
+              type="number"
+              min={1}
+              max={14}
+              value={writingGoal}
+              onChange={e => setWritingGoal(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-gray-900 transition"
             />
           </div>

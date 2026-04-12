@@ -5,6 +5,8 @@ interface WeeklyGoalsProps {
   speakingGoal: number
   listeningCurrent: number
   listeningGoal: number
+  writingCurrent?: number
+  writingGoal?: number
   vocabReviewed?: number
   vocabGoal?: number
 }
@@ -18,18 +20,20 @@ function GoalProgress({
   label: string
   current: number
   goal: number
-  color: 'sky' | 'emerald' | 'violet'
+  color: 'sky' | 'emerald' | 'amber' | 'violet'
 }) {
   const pct = Math.min((current / goal) * 100, 100)
   const done = current >= goal
   const trackColors = {
     sky: 'bg-sky-500',
     emerald: 'bg-emerald-500',
+    amber: 'bg-amber-500',
     violet: 'bg-violet-500',
   }
   const textColors = {
     sky: 'text-sky-600',
     emerald: 'text-emerald-600',
+    amber: 'text-amber-600',
     violet: 'text-violet-600',
   }
   const textColor = done ? textColors[color] : 'text-gray-500'
@@ -70,6 +74,14 @@ export default function WeeklyGoals(props: WeeklyGoalsProps) {
           goal={props.listeningGoal}
           color="emerald"
         />
+        {props.writingGoal && props.writingGoal > 0 && (
+          <GoalProgress
+            label="Writing sessions"
+            current={props.writingCurrent ?? 0}
+            goal={props.writingGoal}
+            color="amber"
+          />
+        )}
         {props.vocabGoal && props.vocabGoal > 0 && (
           <GoalProgress
             label="Words reviewed"
