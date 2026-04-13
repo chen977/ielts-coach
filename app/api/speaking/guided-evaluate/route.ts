@@ -55,12 +55,17 @@ export async function POST(request: Request) {
 
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-20250514',
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: prompt.system,
       messages: [{ role: 'user', content: prompt.user }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
+
+    if (message.stop_reason === 'max_tokens') {
+      console.warn('Guided evaluation response was truncated (max_tokens reached)')
+    }
+
     const evaluation = extractJSON(text) as GuidedEvaluationResult
 
     // Compute updated stats
@@ -106,9 +111,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ evaluation })
 
   } catch (err) {
-    console.error('Guided evaluation error:', err)
+    console.error('Guided evaluation error:', err instanceof Error ? err.message : err)
+    const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Failed to evaluate response' },
+      { error: `Failed to evaluate response: ${message}` },
       { status: 500 }
     )
   }

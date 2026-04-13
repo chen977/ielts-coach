@@ -155,10 +155,21 @@ export function extractJSON(text: string): unknown {
     if (match) {
       return JSON.parse(match[1].trim())
     }
-    // Try finding JSON object or array in the text
+    // Try finding JSON object or array in the text — use greedy match then
+    // progressively trim from the end to handle trailing text with braces
     const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[1])
+      let candidate = jsonMatch[1]
+      // Try parsing as-is first
+      try { return JSON.parse(candidate) } catch { /* try trimming */ }
+      // If the greedy match grabbed trailing text, find the balanced closing brace
+      const start = text.indexOf(candidate)
+      let depth = 0
+      for (let i = start; i < text.length; i++) {
+        if (text[i] === '{') depth++
+        else if (text[i] === '}') { depth--; if (depth === 0) { candidate = text.slice(start, i + 1); break } }
+      }
+      return JSON.parse(candidate)
     }
     throw new Error('Could not extract JSON from response')
   }
